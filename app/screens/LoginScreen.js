@@ -1,23 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { app } from '../firebaseConfig'; // Assuming firebaseConfig exports initialized app
-import { useNavigation } from '@react-navigation/native';
-
-const auth = getAuth(app);
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigation = useNavigation();
 
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const response = await signInWithEmailAndPassword(auth, email, password);
-      console.log(response);
-      navigation.navigate('HomeScreen');
+      await signInWithEmailAndPassword(auth, email, password);
+      // Navigation is handled by the listener in App.js
     } catch (error) {
       console.log(error);
       Alert.alert('Login Error', error.message);
@@ -30,10 +25,8 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       const response = await createUserWithEmailAndPassword(auth, email, password);
-      console.log(response);
-      Alert.alert('Registration Successful', `Welcome ${response.user.email}`, [
-        { text: 'OK', onPress: () => navigation.navigate('HomeScreen') },
-      ]);
+      // Alert is good for notifying the user, but navigation is automatic.
+      Alert.alert('Registration Successful', `Welcome ${response.user.email}`);
     } catch (error) {
       console.log(error);
       Alert.alert('Registration Error', error.message);

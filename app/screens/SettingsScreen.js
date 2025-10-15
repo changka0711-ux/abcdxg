@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, Button, StyleSheet } from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
+import { Alert } from 'react-native';
 
-const HomeScreen = () => {
+const SettingsScreen = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -16,8 +17,7 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Home Screen</Text>
-      <Text>Welcome!</Text>
+      <Text style={styles.title}>Settings</Text>
       <Button title="Logout" onPress={handleLogout} />
     </View>
   );
@@ -35,4 +35,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default SettingsScreen;
