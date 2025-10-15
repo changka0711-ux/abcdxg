@@ -1,18 +1,45 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { app } from '../firebaseConfig'; // Assuming firebaseConfig exports initialized app
+import { useNavigation } from '@react-navigation/native';
+
+const auth = getAuth(app);
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigation = useNavigation();
 
-  const handleLogin = () => {
-    // TODO: Implement Firebase Login
-    console.log('Logging in with:', email, password);
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      const response = await signInWithEmailAndPassword(auth, email, password);
+      console.log(response);
+      navigation.navigate('HomeScreen');
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Login Error', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRegister = () => {
-    // TODO: Implement Firebase Register
-    console.log('Registering with:', email, password);
+  const handleRegister = async () => {
+    setLoading(true);
+    try {
+      const response = await createUserWithEmailAndPassword(auth, email, password);
+      console.log(response);
+      Alert.alert('Registration Successful', `Welcome ${response.user.email}`, [
+        { text: 'OK', onPress: () => navigation.navigate('HomeScreen') },
+      ]);
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Registration Error', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -33,8 +60,14 @@ const LoginScreen = () => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <Button title="Login" onPress={handleLogin} />
-      <Button title="Register" onPress={handleRegister} />
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <>
+          <Button title="Login" onPress={handleLogin} />
+          <Button title="Register" onPress={handleRegister} />
+        </>
+      )}
     </View>
   );
 };
