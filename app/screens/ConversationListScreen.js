@@ -4,26 +4,23 @@ import { useNavigation } from '@react-navigation/native';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 
-// Static AI Chat object
+// Static AI Chat object for the header
 const aiChat = {
-  id: 'AI_CHAT', // Special ID for the AI chat
-  participants: [], // No real participants
+  id: 'AI_CHAT',
   participantInfo: {
     AI_CHAT: {
       displayName: 'AI Assistant',
-      // A placeholder avatar, replace with a real one if available
       photoURL: 'https://firebasestorage.googleapis.com/v0/b/code-60831.appspot.com/o/ai_avatar.png?alt=media&token=a1b2c3d4-e5f6-7890-1234-567890abcdef',
     }
   },
   lastMessage: { text: 'Ask me anything!' },
 };
 
-// Component for rendering a single conversation item in the list
-const ConversationItem = ({ item }) => {
-  const navigation = useNavigation();
+// Component for rendering a single conversation item. It receives `navigation` as a prop.
+const ConversationItem = ({ item, navigation }) => {
   const currentUser = auth.currentUser;
 
-  // Handle the special AI Chat item
+  // AI Chat Item (can be rendered as a header or a regular item)
   if (item.id === 'AI_CHAT') {
     const name = item.participantInfo.AI_CHAT.displayName;
     const avatar = item.participantInfo.AI_CHAT.photoURL;
@@ -49,15 +46,14 @@ const ConversationItem = ({ item }) => {
     );
   }
 
-  // Determine the other participant's ID and information
+  // Regular User Conversation Item
   const otherParticipantId = item.participants.find(p => p !== currentUser.uid);
+  if (!otherParticipantId) return null; // Should not happen in a valid conversation
+
   const otherParticipantInfo = item.participantInfo[otherParticipantId];
-
-  // Fallback values for name and avatar if they don't exist
   const name = otherParticipantInfo?.displayName || 'Unknown User';
-  const avatar = otherParticipantInfo?.photoURL || 'https://via.placeholder.com/50'; // A placeholder image
+  const avatar = otherParticipantInfo?.photoURL || 'https://via.placeholder.com/50';
 
-  // Function to format Firestore Timestamp to a readable time string
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate();
@@ -69,7 +65,6 @@ const ConversationItem = ({ item }) => {
       style={styles.itemContainer}
       onPress={() => navigation.navigate('Chat', {
         conversationId: item.id,
-        // Pass the other participant's info to the ChatScreen for the header
         name: name,
         avatar: avatar,
       })}
@@ -91,23 +86,21 @@ const ConversationItem = ({ item }) => {
 // Main screen component
 const ConversationListScreen = () => {
   const [conversations, setConversations] = useState([]);
-  const currentUser = auth.currentUser;
+  const navigation = useNavigation();
 
   useEffect(() => {
-    // Abort if there's no logged-in user
+    const currentUser = auth.currentUser;
     if (!currentUser) {
-        console.log("No current user found.");
+        setConversations([]);
         return;
     };
 
-    // Query to get conversations involving the current user, ordered by the last message time
     const q = query(
       collection(db, 'conversations'),
       where('participants', 'array-contains', currentUser.uid),
       orderBy('lastMessage.createdAt', 'desc')
     );
 
-    // Set up a real-time listener
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const convos = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -118,18 +111,21 @@ const ConversationListScreen = () => {
         console.error("Error fetching conversations: ", error);
     });
 
-    // Cleanup the listener on component unmount
     return () => unsubscribe();
-  }, [currentUser]); // Rerun effect if the user changes
+  }, [auth.currentUser?.uid]);
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={[aiChat, ...conversations]} // Prepend the AI chat to the list of conversations
-        renderItem={({ item }) => <ConversationItem item={item} />}
+        data={conversations}
+        renderItem={({ item }) => <ConversationItem item={item} navigation={navigation} />}
         keyExtractor={item => item.id}
-        // When the list is empty, it will still show the AI chat
-        ListEmptyComponent={<FlatList data={[aiChat]} renderItem={({ item }) => <ConversationItem item={item} />} keyExtractor={item => item.id} />}
+        // Use ListHeaderComponent to always show the AI chat at the top.
+        ListHeaderComponent={() => <ConversationItem item={aiChat} navigation={navigation} />}
+        // ListEmptyComponent is now simplified and only shows text.
+        ListEmptyComponent={
+            <Text style={styles.emptyText}>No other conversations yet.</Text>
+        }
       />
     </View>
   );
@@ -174,6 +170,11 @@ const styles = StyleSheet.create({
       color: '#555',
       fontSize: 14,
     },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: 20,
+        color: '#888',
+    }
 });
 
 export default ConversationListScreen;

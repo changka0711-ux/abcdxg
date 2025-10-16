@@ -1,38 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    setLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // Navigation is handled by the listener in App.js
-    } catch (error) {
-      console.log(error);
-      Alert.alert('Login Error', error.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleLogin = () => {
+    // TODO: Implement Firebase Login
+    console.log('Logging in with:', email, password);
   };
 
-  const handleRegister = async () => {
-    setLoading(true);
-    try {
-      const response = await createUserWithEmailAndPassword(auth, email, password);
-      // Alert is good for notifying the user, but navigation is automatic.
-      Alert.alert('Registration Successful', `Welcome ${response.user.email}`);
-    } catch (error) {
-      console.log(error);
-      Alert.alert('Registration Error', error.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleRegister = () => {
+    // TODO: Implement Firebase Register
+    console.log('Registering with:', email, password);
   };
 
   return (
@@ -53,14 +33,8 @@ const LoginScreen = () => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <>
-          <Button title="Login" onPress={handleLogin} />
-          <Button title="Register" onPress={handleRegister} />
-        </>
-      )}
+      <Button title="Login" onPress={handleLogin} />
+      <Button title="Register" onPress={handleRegister} />
     </View>
   );
 };
