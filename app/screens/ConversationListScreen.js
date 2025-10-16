@@ -4,10 +4,50 @@ import { useNavigation } from '@react-navigation/native';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 
+// Static AI Chat object
+const aiChat = {
+  id: 'AI_CHAT', // Special ID for the AI chat
+  participants: [], // No real participants
+  participantInfo: {
+    AI_CHAT: {
+      displayName: 'AI Assistant',
+      // A placeholder avatar, replace with a real one if available
+      photoURL: 'https://firebasestorage.googleapis.com/v0/b/code-60831.appspot.com/o/ai_avatar.png?alt=media&token=a1b2c3d4-e5f6-7890-1234-567890abcdef',
+    }
+  },
+  lastMessage: { text: 'Ask me anything!' },
+};
+
 // Component for rendering a single conversation item in the list
 const ConversationItem = ({ item }) => {
   const navigation = useNavigation();
   const currentUser = auth.currentUser;
+
+  // Handle the special AI Chat item
+  if (item.id === 'AI_CHAT') {
+    const name = item.participantInfo.AI_CHAT.displayName;
+    const avatar = item.participantInfo.AI_CHAT.photoURL;
+    return (
+      <TouchableOpacity
+        style={styles.itemContainer}
+        onPress={() => navigation.navigate('Chat', {
+          conversationId: item.id,
+          name: name,
+          avatar: avatar,
+        })}
+      >
+        <Image source={{ uri: avatar }} style={styles.avatar} />
+        <View style={styles.textContainer}>
+          <View style={styles.header}>
+              <Text style={styles.name}>{name}</Text>
+          </View>
+          <Text style={styles.lastMessage} numberOfLines={1}>
+              {item.lastMessage?.text || ''}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
   // Determine the other participant's ID and information
   const otherParticipantId = item.participants.find(p => p !== currentUser.uid);
@@ -85,10 +125,11 @@ const ConversationListScreen = () => {
   return (
     <View style={styles.container}>
       <FlatList
-        data={conversations}
+        data={[aiChat, ...conversations]} // Prepend the AI chat to the list of conversations
         renderItem={({ item }) => <ConversationItem item={item} />}
         keyExtractor={item => item.id}
-        ListEmptyComponent={<Text style={{textAlign: 'center', marginTop: 20}}>No conversations yet.</Text>}
+        // When the list is empty, it will still show the AI chat
+        ListEmptyComponent={<FlatList data={[aiChat]} renderItem={({ item }) => <ConversationItem item={item} />} keyExtractor={item => item.id} />}
       />
     </View>
   );

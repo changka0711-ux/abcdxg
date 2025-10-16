@@ -44,18 +44,22 @@ exports.askAI = functions.https.onCall(async (data, context) => {
 
   // 4. Call the External LLM API
   try {
-    const response = await fetch(apiEndpoint, {
+    // The Gemini API uses a different header and body structure.
+    const response = await fetch(`${apiEndpoint}?key=${apiKey}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
       },
-      // NOTE: The body structure must be adjusted to match the specific LLM API's requirements.
-      // This is a common example for a completion-style API.
       body: JSON.stringify({
-        prompt: userPrompt,
-        max_tokens: 150, // Example parameter
-        temperature: 0.7, // Example parameter
+        contents: [
+          {
+            parts: [
+              {
+                text: userPrompt,
+              },
+            ],
+          },
+        ],
       }),
     });
 
@@ -72,9 +76,8 @@ exports.askAI = functions.https.onCall(async (data, context) => {
     const responseData = await response.json();
 
     // 5. Return the Result
-    // The path to the result (e.g., `responseData.choices[0].text`) depends entirely
-    // on the specific LLM API's response format.
-    const aiResult = responseData?.choices?.[0]?.text;
+    // The path to the result for Gemini API is different.
+    const aiResult = responseData?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (typeof aiResult !== "string") {
         console.error("Unexpected response format from LLM API:", responseData);
