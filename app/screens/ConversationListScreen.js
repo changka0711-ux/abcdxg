@@ -19,8 +19,8 @@ const aiChat = {
 };
 
 // Component for rendering a single conversation item in the list
-const ConversationItem = ({ item }) => {
-  const navigation = useNavigation();
+// It no longer uses the useNavigation hook; instead, it receives navigation as a prop.
+const ConversationItem = ({ item, navigation }) => {
   const currentUser = auth.currentUser;
 
   // Handle the special AI Chat item
@@ -91,6 +91,7 @@ const ConversationItem = ({ item }) => {
 // Main screen component
 const ConversationListScreen = () => {
   const [conversations, setConversations] = useState([]);
+  const navigation = useNavigation(); // Hook is called once in the parent component.
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -123,18 +124,18 @@ const ConversationListScreen = () => {
     return () => unsubscribe();
   }, [auth.currentUser?.uid]); // Rerun effect only if the user's ID changes
 
-  const memoizedData = useMemo(() => [aiChat, ...conversations], [conversations]);
-
   return (
     <View style={styles.container}>
       <FlatList
-        data={memoizedData}
-        renderItem={({ item }) => <ConversationItem item={item} />}
+        data={conversations}
+        // Pass the navigation object to each item.
+        renderItem={({ item }) => <ConversationItem item={item} navigation={navigation} />}
         keyExtractor={item => item.id}
-        // When the list is empty, it will still show the AI chat
+        // The AI chat is now always displayed at the top of the list.
+        ListHeaderComponent={<ConversationItem item={aiChat} navigation={navigation} />}
+        // This component is now correctly displayed only when the 'conversations' array is empty.
         ListEmptyComponent={
           <View>
-            <ConversationItem item={aiChat} />
             <Text style={{textAlign: 'center', marginTop: 20}}>No other conversations yet.</Text>
           </View>
         }
