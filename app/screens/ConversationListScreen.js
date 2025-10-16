@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
@@ -91,12 +91,13 @@ const ConversationItem = ({ item }) => {
 // Main screen component
 const ConversationListScreen = () => {
   const [conversations, setConversations] = useState([]);
-  const currentUser = auth.currentUser;
 
   useEffect(() => {
+    const currentUser = auth.currentUser;
     // Abort if there's no logged-in user
     if (!currentUser) {
         console.log("No current user found.");
+        setConversations([]); // Clear conversations on logout
         return;
     };
 
@@ -120,16 +121,23 @@ const ConversationListScreen = () => {
 
     // Cleanup the listener on component unmount
     return () => unsubscribe();
-  }, [currentUser]); // Rerun effect if the user changes
+  }, [auth.currentUser?.uid]); // Rerun effect only if the user's ID changes
+
+  const memoizedData = useMemo(() => [aiChat, ...conversations], [conversations]);
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={[aiChat, ...conversations]} // Prepend the AI chat to the list of conversations
+        data={memoizedData}
         renderItem={({ item }) => <ConversationItem item={item} />}
         keyExtractor={item => item.id}
         // When the list is empty, it will still show the AI chat
-        ListEmptyComponent={<FlatList data={[aiChat]} renderItem={({ item }) => <ConversationItem item={item} />} keyExtractor={item => item.id} />}
+        ListEmptyComponent={
+          <View>
+            <ConversationItem item={aiChat} />
+            <Text style={{textAlign: 'center', marginTop: 20}}>No other conversations yet.</Text>
+          </View>
+        }
       />
     </View>
   );
