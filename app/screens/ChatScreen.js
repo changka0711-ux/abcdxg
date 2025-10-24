@@ -150,7 +150,10 @@ const ChatScreen = () => {
 
       const askAI = httpsCallable(functions, 'askAI');
       try {
-        const response = await askAI({ history });
+        // Ensure prompt is never empty, especially for image-only messages
+        const prompt = messageToSend.text || ' '; 
+        const payload = { history, prompt };
+        const response = await askAI(payload);
         const aiResponse = {
           _id: uuidv4(), // Use a client-side ID for the response message
           text: response.data.result,
