@@ -10,7 +10,6 @@ import {
   Platform,
   ActivityIndicator,
   Image,
-  Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { collection, addDoc, orderBy, query, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -31,48 +30,25 @@ const ChatScreen = () => {
   const { conversationId, name } = route.params;
   const flatListRef = useRef();
 
-  const [conversationDetails, setConversationDetails] = useState(null);
-  const [participantNames, setParticipantNames] = useState({});
-
   useLayoutEffect(() => {
-    const isGroupChat = conversationDetails?.isGroup;
-    navigation.setOptions({
-      title: name,
-      headerRight: () => (
-        isGroupChat && (
-          <TouchableOpacity onPress={() => Alert.alert("Group Members", Object.values(participantNames).join('\n'))}>
-            <Text style={{ color: '#007AFF', marginRight: 10 }}>Members</Text>
-          </TouchableOpacity>
-        )
-      ),
-    });
-  }, [navigation, name, conversationDetails, participantNames]);
+    navigation.setOptions({ title: name });
+  }, [navigation, name]);
 
   useEffect(() => {
-    // Fetch conversation details
-    const conversationDocRef = doc(db, 'conversations', conversationId);
-    const unsubDetails = onSnapshot(conversationDocRef, async (doc) => {
-      const data = doc.data();
-      setConversationDetails(data);
-      if (data && data.participants) {
-        // Fetch participant names
-        const names = {};
-        for (const id of data.participants) {
-            const userDoc = await getDoc(doc(db, 'users', id));
-            if (userDoc.exists()) {
-                names[id] = userDoc.data().displayName;
-            }
-        }
-        setParticipantNames(names);
-      }
-    });
-
-    // Fetch messages
     const messagesCollectionRef = collection(db, 'conversations', conversationId, 'messages');
     const q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
-    const unsubMessages = onSnapshot(q, snapshot => {
+
+    const unsubscribe = onSnapshot(q, snapshot => {
       if (snapshot.empty && conversationId === 'AI_CHAT') {
-        setMessages([{ _id: 1, text: 'Hello! I am your AI Assistant.', createdAt: new Date(), user: { _id: 'AI' } }]);
+        // If it's the AI chat and there are no messages, set the initial greeting.
+        setMessages([
+          {
+            _id: 1,
+            text: 'Hello! I am your AI Assistant. How can I help you today?',
+            createdAt: new Date(),
+            user: { _id: 'AI' },
+          },
+        ]);
       } else {
         const fetchedMessages = snapshot.docs.map(doc => ({
           _id: doc.id,
@@ -83,10 +59,7 @@ const ChatScreen = () => {
       }
     });
 
-    return () => {
-      unsubDetails();
-      unsubMessages();
-    };
+    return () => unsubscribe();
   }, [conversationId]);
 
   const pickImage = async () => {
@@ -103,7 +76,11 @@ const ChatScreen = () => {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
+    // Log the full result for debugging
+    console.log(JSON.stringify(result, null, 2));
+
+    // Check if the user cancelled, and if there are assets to process
+    if (!result.canceled && result.assets && result.assets.length > 0) {
       const uri = result.assets[0].uri;
       await uploadImage(uri);
     }
@@ -207,22 +184,20 @@ const ChatScreen = () => {
 
   const renderItem = ({ item }) => {
     const isMyMessage = item.user._id === auth.currentUser?.uid;
-    const isGroupChat = conversationDetails?.isGroup;
 
+    // Align the message bubble to the right for the current user, and left for others.
     const messageContainerStyle = {
         alignSelf: isMyMessage ? 'flex-end' : 'flex-start',
-        marginVertical: 4,
+        marginVertical: 4, // Add some vertical space between messages
     };
-
-    // Show sender's name in group chats for messages that are not from the current user.
-    const senderName = !isMyMessage && isGroupChat ? participantNames[item.user._id] || 'Unknown User' : null;
 
     return (
         <View style={messageContainerStyle}>
-            {senderName && <Text style={styles.senderName}>{senderName}</Text>}
             {item.image ? (
+                // If the message is an image, render the ChatMessageImage component
                 <ChatMessageImage uri={item.image} />
             ) : (
+                // Otherwise, render a standard text bubble
                 <View style={[styles.messageBubble, isMyMessage ? styles.myMessage : styles.theirMessage]}>
                     <Text style={isMyMessage ? styles.myMessageText : styles.theirMessageText}>{item.text}</Text>
                 </View>
@@ -292,12 +267,6 @@ const styles = StyleSheet.create({
   },
   theirMessageText: {
     color: 'black',
-  },
-  senderName: {
-    color: 'gray',
-    fontSize: 12,
-    marginLeft: 10,
-    marginBottom: 2,
   },
   image: {
     width: 200,

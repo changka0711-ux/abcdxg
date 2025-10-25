@@ -9,7 +9,6 @@ import LoginScreen from './screens/LoginScreen';
 import ConversationListScreen from './screens/ConversationListScreen';
 import ChatScreen from './screens/ChatScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import UserListScreen from './screens/UserListScreen'; // Import the new screen
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -19,7 +18,6 @@ function MainTabs() {
   return (
     <Tab.Navigator>
       <Tab.Screen name="Conversations" component={ConversationListScreen} />
-      <Tab.Screen name="Users" component={UserListScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

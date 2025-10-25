@@ -91,7 +91,6 @@ const ConversationItem = ({ item, navigation }) => {
 const ConversationListScreen = () => {
   const [conversations, setConversations] = useState([]);
   const [aiChat, setAiChat] = useState(null);
-  const [searchText, setSearchText] = useState('');
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -144,46 +143,27 @@ const ConversationListScreen = () => {
     };
   }, [auth.currentUser?.uid]);
 
-  // Memoize, filter, and sort the combined list of conversations
-  const filteredAndSortedConversations = useMemo(() => {
-    let combined = aiChat ? [aiChat, ...conversations] : [...conversations];
-
-    if (searchText) {
-      const lowercasedSearch = searchText.toLowerCase();
-      combined = combined.filter(convo => {
-        if (convo.isGroup) {
-          return convo.groupName?.toLowerCase().includes(lowercasedSearch);
-        }
-        if (convo.id === 'AI_CHAT') {
-            return 'ai assistant'.includes(lowercasedSearch);
-        }
-        const otherId = convo.participants.find(p => p !== auth.currentUser?.uid);
-        return convo.participantInfo[otherId]?.displayName.toLowerCase().includes(lowercasedSearch);
-      });
-    }
+  // Memoize and sort the combined list of conversations to prevent re-renders
+  const allConversations = useMemo(() => {
+    const combined = aiChat ? [aiChat, ...conversations] : [...conversations];
 
     return combined.sort((a, b) => {
       const timeA = a.lastMessage?.createdAt?.toDate() || 0;
       const timeB = b.lastMessage?.createdAt?.toDate() || 0;
-      return timeB - timeA;
+      return timeB - timeA; // Sort in descending order (most recent first)
     });
-  }, [aiChat, conversations, searchText]);
+  }, [aiChat, conversations]);
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search conversations..."
-        value={searchText}
-        onChangeText={setSearchText}
-      />
       <FlatList
-        data={filteredAndSortedConversations}
+        data={allConversations}
         renderItem={({ item }) => <ConversationItem item={item} navigation={navigation} />}
         keyExtractor={item => item.id}
         ListEmptyComponent={
           <View>
-            <Text style={{textAlign: 'center', marginTop: 20}}>No matching conversations.</Text>
+            {/* Show a loading or empty state that doesn't include the AI chat */}
+            <Text style={{textAlign: 'center', marginTop: 20}}>No conversations yet.</Text>
           </View>
         }
       />
@@ -195,14 +175,6 @@ const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: '#fff',
-    },
-    searchInput: {
-      height: 40,
-      borderColor: '#ccc',
-      borderWidth: 1,
-      borderRadius: 8,
-      paddingHorizontal: 15,
-      margin: 10,
     },
     itemContainer: {
       flexDirection: 'row',

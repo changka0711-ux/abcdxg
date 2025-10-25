@@ -5,8 +5,6 @@ import { auth } from '../firebaseConfig';
 import { Alert } from 'react-native';
 
 const SettingsScreen = () => {
-  const user = auth.currentUser;
-
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -20,9 +18,6 @@ const SettingsScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Settings</Text>
-      {user && (
-        <Text style={styles.userInfo}>Logged in as: {user.email}</Text>
-      )}
       <Button title="Logout" onPress={handleLogout} />
     </View>
   );
@@ -38,11 +33,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 20,
   },
-  userInfo: {
-    fontSize: 16,
-    color: 'gray',
-    marginBottom: 30,
-  }
 });
 
 export default SettingsScreen;
