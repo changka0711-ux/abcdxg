@@ -20,10 +20,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": [
-        "READ_MEDIA_IMAGES",
-        "READ_EXTERNAL_STORAGE"
-      ]
+      "package": "com.changkackw.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,6 +32,11 @@
           "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3323fdbb-585e-4f32-8544-7cfeefa9a365"
+      }
+    }
   }
 }
