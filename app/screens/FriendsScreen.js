@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebaseConfig';
@@ -70,14 +70,20 @@ const FriendsScreen = () => {
   };
 
   const handleAddFriend = async (friendId) => {
+    setLoading(true);
     await addFriend(friendId);
+    setLoading(false);
     Alert.alert("Friend Added!");
     setSearchQuery('');
     setSearchResults([]);
   };
 
   const handleRemoveFriend = async (friendId) => {
+    setLoading(true);
     await removeFriend(friendId);
+    // Optimistically update the UI by removing the friend from the local state.
+    setFriendDetails(prevDetails => prevDetails.filter(friend => friend.id !== friendId));
+    setLoading(false);
     Alert.alert("Friend Removed!");
   };
 
@@ -118,7 +124,12 @@ const FriendsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Friends</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Friends</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('CreateGroup')}>
+          <Text style={styles.createGroupButton}>Create Group</Text>
+        </TouchableOpacity>
+      </View>
 
       <TextInput
         style={styles.searchInput}
@@ -128,16 +139,16 @@ const FriendsScreen = () => {
         autoCapitalize="none"
       />
 
-      {loading && <Text>Searching...</Text>}
+      {loading && <ActivityIndicator size="large" color="#007AFF" style={styles.loadingIndicator} />}
 
-      {searchQuery.length > 0 ? (
+      {!loading && searchQuery.length > 0 ? (
         <FlatList
           data={searchResults}
           renderItem={renderSearchResult}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={<Text style={styles.listHeader}>Search Results</Text>}
         />
-      ) : (
+      ) : !loading && (
         <FlatList
           data={friendDetails}
           renderItem={renderFriend}
@@ -150,15 +161,28 @@ const FriendsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  loadingIndicator: {
+    marginTop: 20,
+  },
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: '#fff',
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+  },
+  createGroupButton: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
   },
   searchInput: {
     height: 40,

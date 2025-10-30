@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove, setDoc, getDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 
 /**
@@ -11,10 +11,9 @@ export const searchUsers = async (name) => {
     return [];
   }
   const usersRef = collection(db, 'users');
-  // Query for users where the displayName matches the search query.
   // Note: Firestore requires an index for this query.
   // The error message in the console will provide a link to create it if needed.
-  const q = query(usersRef, where('displayName', '==', name));
+  const q = query(usersRef, where('displayName', '>=', name), where('displayName', '<=', name + '\uf8ff'));
 
   try {
     const querySnapshot = await getDocs(q);
@@ -99,6 +98,61 @@ export const getOrCreateConversation = async (friendId) => {
     return conversationId;
   } catch (error) {
     console.error("Error getting or creating conversation:", error);
+    throw error;
+  }
+};
+
+/**
+ * Updates the current user's display name.
+ * @param {string} newName The new display name.
+ */
+export const updateUserProfile = async (newName) => {
+  if (!auth.currentUser) {
+    throw new Error("No user is signed in.");
+  }
+  const userDocRef = doc(db, 'users', auth.currentUser.uid);
+  try {
+    await updateDoc(userDocRef, {
+      displayName: newName
+    });
+    console.log("User profile updated successfully!");
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    throw error;
+  }
+};
+
+/**
+ * Creates a new group conversation.
+ * @param {string} groupName The name of the group.
+ * @param {Array<string>} memberIds The UIDs of the members to add to the group.
+ * @returns {Promise<string>} A promise that resolves to the new conversation ID.
+ */
+export const createGroupConversation = async (groupName, memberIds) => {
+  if (!auth.currentUser) {
+    throw new Error("No user is signed in.");
+  }
+  const currentUserUid = auth.currentUser.uid;
+  // Ensure creator is included and remove duplicates
+  const allMemberIds = [...new Set([currentUserUid, ...memberIds])];
+
+  const conversationsRef = collection(db, 'conversations');
+  try {
+    const newGroupDoc = await addDoc(conversationsRef, {
+      isGroup: true,
+      groupName,
+      groupAdmin: currentUserUid,
+      participants: allMemberIds,
+      lastMessage: {
+        text: `Group created by ${auth.currentUser.displayName || 'a user'}.`,
+        createdAt: serverTimestamp(),
+        senderId: currentUserUid,
+      },
+    });
+    console.log("Group conversation created successfully with ID:", newGroupDoc.id);
+    return newGroupDoc.id;
+  } catch (error) {
+    console.error("Error creating group conversation:", error);
     throw error;
   }
 };

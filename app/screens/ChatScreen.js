@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { collection, addDoc, orderBy, query, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -27,7 +28,7 @@ const ChatScreen = () => {
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const route = useRoute();
-  const { conversationId, name } = route.params;
+  const { conversationId, name, isGroup } = route.params;
   const flatListRef = useRef();
 
   useLayoutEffect(() => {
@@ -83,7 +84,7 @@ const ChatScreen = () => {
       }
     } catch (error) {
       console.error("Error picking image: ", error);
-      alert('An error occurred while picking the image.');
+      Alert.alert("Image Picker Error", `An error occurred: ${error.message}`);
     }
   };
 
@@ -110,6 +111,10 @@ const ChatScreen = () => {
 
     } catch (error) {
       console.error("Error uploading image: ", error);
+      Alert.alert(
+        "Upload Failed",
+        `Error: ${error.code}\nMessage: ${error.message}`
+      );
     } finally {
       setLoading(false);
     }
@@ -194,6 +199,9 @@ const ChatScreen = () => {
 
     return (
         <View style={messageContainerStyle}>
+            {isGroup && !isMyMessage && (
+                <Text style={styles.senderName}>{item.user.displayName || 'User'}</Text>
+            )}
             {item.image ? (
                 // If the message is an image, render the ChatMessageImage component
                 <ChatMessageImage uri={item.image} />
@@ -232,7 +240,19 @@ const ChatScreen = () => {
           onChangeText={setInput}
           placeholder="Type a message..."
         />
-        <TouchableOpacity style={styles.sendButton} onPress={() => onSend([{ _id: uuidv4(), text: input, createdAt: new Date(), user: { _id: auth.currentUser?.uid } }])}>
+        <TouchableOpacity style={styles.sendButton} onPress={() => {
+          if (input.trim().length > 0) {
+            onSend([{
+              _id: uuidv4(),
+              text: input,
+              createdAt: new Date(),
+              user: {
+                _id: auth.currentUser?.uid,
+                displayName: auth.currentUser?.displayName || 'User',
+              }
+            }]);
+          }
+        }}>
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
@@ -268,6 +288,12 @@ const styles = StyleSheet.create({
   },
   theirMessageText: {
     color: 'black',
+  },
+  senderName: {
+    color: '#888',
+    fontSize: 12,
+    marginLeft: 5,
+    marginBottom: 2,
   },
   image: {
     width: 200,
