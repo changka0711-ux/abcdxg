@@ -1,0 +1,29 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Expo
+.expo/
+dist/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig
+
+# Metro bundler
+.metro-health-check
+
+# Secrets
+*.env
+.env
+
+# IDE files
+.idea/
+.vscode/
+
+# Logs
+*.log

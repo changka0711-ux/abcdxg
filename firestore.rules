@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      // Allow any authenticated user to read user profiles for searching.
+      allow read: if request.auth != null;
+
+      // Allow users to update their own document, specifically the 'friends' list.
+      // They cannot modify other fields unless it's their own document.
+      allow update: if request.auth != null && request.auth.uid == userId;
+
+      // Users can create their own document upon signup.
+      allow create: if request.auth != null;
+
+      // Deleting user profiles is not allowed through client-side requests.
+      allow delete: if false;
+    }
+
+    match /conversations/{conversationId} {
+      // Allow any authenticated user to read/write the AI chat document.
+      // For all other conversations, only participants can read/write.
+      allow read, write: if request.auth != null &&
+                          (conversationId == 'AI_CHAT' || request.auth.uid in resource.data.participants);
+
+      // Allow creating a new conversation if the user is one of the participants.
+      allow create: if request.auth != null && request.auth.uid in request.resource.data.participants;
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Allow authenticated users to read/create messages in the AI chat,
+        // or if they are a participant in a regular chat.
+        allow read, create: if request.auth != null &&
+                             (conversationId == 'AI_CHAT' || request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants);
+      }
+    }
+  }
+}
